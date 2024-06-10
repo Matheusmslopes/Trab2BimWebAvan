@@ -1,5 +1,8 @@
+import { USER_NOT_FOUND } from '../libs/error.js';
+
 /** @type{import('fastify').FastifyPluginAsync<>} */
 export default async function auth(app, options) {
+    const users = app.mongo.db.collection('users');
     
     app.post('/auth', {
         schema: {
@@ -7,15 +10,17 @@ export default async function auth(app, options) {
                 type: 'object',
                 properties: {
                     _id: { type: 'string' },
-                    name: { type: 'string' },
+                    username: { type: 'string' },
                     password: {type: 'string'}
                 },
-                required: ['name', 'password']
+                required: ['username', 'password']
             }
         }
-    },(req, rep) => {
+    }, async (req, rep) => {
         let user = req.body;
         req.log.info(`Login for user ${user.username}`);
+        let result = await users.count({name:user.username})
+        if(result <= 0) throw new USER_NOT_FOUND()
         //check login details
         delete user.password;
         return {
